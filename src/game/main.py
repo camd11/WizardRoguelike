@@ -3,9 +3,9 @@
 State flow (modeled on RW2):
   SHOP → LEVEL → SHOP → LEVEL → ... → GAME_OVER
 
-In SHOP: player buys components, crafts spells, presses Enter to start
+In SHOP: clickable component grid, craft spells, click Start
 In LEVEL: turn-based gameplay until all enemies dead or player dies
-In GAME_OVER: show stats, press Space to quit
+In GAME_OVER: show stats, press Space to quit or R to restart
 """
 from __future__ import annotations
 
@@ -16,8 +16,10 @@ import pygame
 
 from game.core.events import EventOnDamaged, EventOnDeath
 from game.game.game_state import Game
+from game.game.serialization import load_game, restore_game
 from game.rendering.input_handler import InputHandler
 from game.rendering.renderer import SCREEN_H, SCREEN_W, Renderer
+from game.rendering.ui_shop import ShopUI
 
 
 class GameMode(Enum):
@@ -33,19 +35,37 @@ def main(seed: int | None = None) -> None:
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     clock = pygame.time.Clock()
 
-    game = Game(seed=seed)
+    # Check for saved game
+    save_data = load_game()
+    if save_data is not None:
+        game = restore_game(save_data)
+    else:
+        game = Game(seed=seed)
+
     renderer = Renderer(screen)
     input_handler = InputHandler()
+    shop_ui = ShopUI(SCREEN_W, SCREEN_H)
     mode = GameMode.SHOP
 
     # Hook damage events to renderer for visual feedback
     def _on_damaged(evt):
-        renderer.anims.add_damage_number(evt.unit.x, evt.unit.y, evt.damage, (255, 80, 40))
+        renderer.anims.add_damage_number(evt.unit.x, evt.unit.y, evt.damage,
+                                          evt.damage_type.color if hasattr(evt.damage_type, 'color') else (255, 80, 40))
         renderer.anims.add_tile_flash(evt.unit.x, evt.unit.y, (255, 100, 50))
         renderer.add_log(f"{evt.unit.name} takes {evt.damage} {evt.damage_type.name} damage")
 
     def _on_death(evt):
         renderer.add_log(f"{evt.unit.name} is destroyed!")
+        renderer.anims.add_death_effect(evt.unit.x, evt.unit.y)
+
+    def _start_level():
+        nonlocal mode
+        gen_level = game.start_level()
+        mode = GameMode.LEVEL
+        game.current_level.event_handler.subscribe(EventOnDamaged, _on_damaged)
+        game.current_level.event_handler.subscribe(EventOnDeath, _on_death)
+        renderer.add_log(f"--- Level {game.level_num}: {gen_level.biome.name} ---")
+        renderer.add_log(f"    Enemies: {game.current_level.enemies_remaining()}")
 
     running = True
     while running:
@@ -57,24 +77,23 @@ def main(seed: int | None = None) -> None:
                 pygame.display.toggle_fullscreen()
 
         if mode == GameMode.SHOP:
-            # Render shop
-            renderer.render_shop(game)
+            # Handle shop input (clicks and keyboard)
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    result = shop_ui.handle_click(event.pos[0], event.pos[1], game)
+                    if result == "start_level":
+                        _start_level()
+                elif event.type == pygame.MOUSEMOTION:
+                    shop_ui.handle_motion(event.pos[0], event.pos[1])
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN and game.player.spells:
+                        _start_level()
 
-            # Draw input field
-            _draw_shop_input(screen, renderer, input_handler)
-
-            start = input_handler.process_shop_events(events, game, renderer)
-            if start:
-                gen_level = game.start_level()
-                mode = GameMode.LEVEL
-                # Subscribe damage/death events for this level
-                game.current_level.event_handler.subscribe(EventOnDamaged, _on_damaged)
-                game.current_level.event_handler.subscribe(EventOnDeath, _on_death)
-                renderer.add_log(f"--- Level {game.level_num}: {gen_level.biome.name} ---")
+            if mode == GameMode.SHOP:
+                shop_ui.draw(screen, game, renderer.font, renderer.font_large, renderer.font_small)
 
         elif mode == GameMode.LEVEL:
             if game.current_level and game.current_level.is_awaiting_input:
-                # Player's turn — process input
                 input_handler.process_level_events(events, game, renderer)
                 action = input_handler.get_action()
                 if action is not None:
@@ -89,11 +108,10 @@ def main(seed: int | None = None) -> None:
                             mode = GameMode.GAME_OVER
                         else:
                             mode = GameMode.SHOP
+                            shop_ui.message = f"Level {game.level_num} cleared! +{game.sp_per_level} SP"
+                            shop_ui.message_color = (80, 200, 80)
             elif game.current_level:
-                # Advance spell animations (one frame per render tick)
                 game.current_level.advance_spells()
-
-                # Check if player died during enemy phase
                 if not game.player.is_alive():
                     game.defeat = True
                     game.game_over = True
@@ -104,30 +122,20 @@ def main(seed: int | None = None) -> None:
         elif mode == GameMode.GAME_OVER:
             renderer.render_game_over(game)
             for event in events:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        running = False
+                    elif event.key == pygame.K_r:
+                        # Restart
+                        game = Game(seed=None)
+                        renderer = Renderer(screen)
+                        shop_ui = ShopUI(SCREEN_W, SCREEN_H)
+                        mode = GameMode.SHOP
 
         pygame.display.flip()
         clock.tick(30)
 
     pygame.quit()
-
-
-def _draw_shop_input(screen: pygame.Surface, renderer: Renderer,
-                     input_handler: InputHandler) -> None:
-    """Draw the text input field at the bottom of the shop screen."""
-    font = renderer.font
-    y = SCREEN_H - 50
-
-    # Message
-    if input_handler.shop_message:
-        msg_surf = font.render(input_handler.shop_message, True, (255, 220, 100))
-        screen.blit(msg_surf, (40, y - 20))
-
-    # Input prompt
-    prompt = f"> {input_handler.shop_input}_"
-    prompt_surf = font.render(prompt, True, (200, 200, 200))
-    screen.blit(prompt_surf, (40, y))
 
 
 if __name__ == "__main__":

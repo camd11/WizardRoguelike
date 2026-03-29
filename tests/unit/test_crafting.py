@@ -125,7 +125,7 @@ class TestCraftedSpell:
         assert spell.damage == 9
         assert spell.damage_type is Tags.Fire
         assert spell.range == 7
-        assert spell.max_charges == 5
+        assert spell.max_charges == 8
         assert Tags.Fire in spell.tags
         assert Tags.Shape_Bolt in spell.tags
 

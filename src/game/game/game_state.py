@@ -26,8 +26,8 @@ class Game:
         self.spell_library = SpellLibrary()
 
         # SP economy
-        self.sp: int = 5  # Starting SP
-        self.sp_per_level: int = 3  # SP gained per level cleared
+        self.sp: int = 8  # Starting SP (enough for 2-3 spells)
+        self.sp_per_level: int = 4  # SP gained per level cleared
 
         # Level tracking
         self.level_num: int = 0
@@ -49,8 +49,8 @@ class Game:
         player = Unit()
         player.name = "Wizard"
         player.team = Team.PLAYER
-        player.max_hp = 100
-        player.cur_hp = 100
+        player.max_hp = 120
+        player.cur_hp = 120
         player.asset_name = "char/player"  # RW2 player sprite
         return player
 
@@ -92,38 +92,40 @@ class Game:
     def submit_action(self, action: MoveAction | CastAction | PassAction) -> dict:
         """Submit a player action and advance the game.
 
-        Returns a dict with the result:
-        {
-            "turn_complete": bool,
-            "level_clear": bool,
-            "player_dead": bool,
-            "enemies_remaining": int,
-            "player_hp": int,
-            "events": list[str],
-        }
+        Sends the action to the turn generator, then advances through
+        spell animations and enemy turns until the next player input
+        is needed (or the turn/level ends).
         """
         if self.turn_generator is None or self.game_over:
             return {"error": "No active level"}
 
-        try:
-            result = self.turn_generator.send(action)
-        except StopIteration:
-            result = True
-
-        events = []
-
-        # Check for dead enemies
+        # Track enemies alive before action to detect kills
+        enemies_before = set()
         if self.current_level:
-            for u in list(self.current_level.units):
-                if not u.is_alive() and u.team == Team.ENEMY:
-                    self.enemies_killed += 1
-                    events.append(f"{u.name} killed!")
+            enemies_before = {id(u) for u in self.current_level.units
+                              if u.team == Team.ENEMY and u.is_alive()}
 
-        # Continue advancing until next player input or turn end
+        # Send the action to the generator (resumes from the input yield)
+        try:
+            self.turn_generator.send(action)
+        except StopIteration:
+            pass
+
+        # Advance through spell animations + enemy turns until next player input
         turn_complete = self._advance_to_input()
 
         if turn_complete:
             self.total_turns += 1
+
+        # Detect killed enemies
+        events = []
+        if self.current_level:
+            enemies_after = {id(u) for u in self.current_level.units
+                             if u.team == Team.ENEMY and u.is_alive()}
+            killed_ids = enemies_before - enemies_after
+            self.enemies_killed += len(killed_ids)
+            if killed_ids:
+                events.append(f"{len(killed_ids)} enemy(ies) killed!")
 
         # Check win/loss conditions
         player_dead = not self.player.is_alive()
@@ -144,6 +146,10 @@ class Game:
                 self.sp += self.sp_per_level
                 self.in_shop = True
                 events.append(f"Gained {self.sp_per_level} SP. Total: {self.sp}")
+                # Auto-save between levels
+                from game.game.serialization import save_game
+                save_game(self)
+                events.append("Game saved.")
 
         return {
             "turn_complete": turn_complete,
@@ -261,20 +267,32 @@ class Game:
         return state
 
     def _advance_to_input(self) -> bool:
-        """Advance the turn generator until it needs player input or a turn ends.
+        """Advance the turn generator until it needs player input.
 
-        Returns True if a turn completed.
+        Returns True if at least one full turn completed during advancement.
+        Keeps advancing past turn boundaries until reaching a player input yield.
         """
         if self.turn_generator is None:
             return False
 
-        while True:
+        turn_completed = False
+        max_steps = 5000  # Safety valve
+        for _ in range(max_steps):
+            # Check if waiting for player input
             if self.current_level and self.current_level.is_awaiting_input:
-                return False
+                return turn_completed
+
+            # Check if player died
+            if not self.player.is_alive():
+                return True
+
+            # Check if level is clear (no more enemies = no more turns needed)
+            if self.current_level and self.current_level.is_clear():
+                return True
 
             try:
                 result = next(self.turn_generator)
                 if result is True:
-                    return True  # Turn complete
+                    turn_completed = True
             except StopIteration:
                 return True

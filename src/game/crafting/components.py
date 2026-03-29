@@ -134,17 +134,17 @@ def _reg_shape(s: Shape) -> Shape:
 
 BOLT = _reg_shape(Shape(
     name="Bolt", tag=Tags.Shape_Bolt,
-    base_range=7, base_radius=0, base_charges=5, tier=1, sp_cost=1,
+    base_range=7, base_radius=0, base_charges=8, tier=1, sp_cost=1,
     description="A projectile that travels in a line. Stops at first target hit.",
 ))
 BURST = _reg_shape(Shape(
     name="Burst", tag=Tags.Shape_Burst,
-    base_range=6, base_radius=2, base_charges=3, tier=1, sp_cost=1,
+    base_range=6, base_radius=2, base_charges=5, tier=1, sp_cost=1,
     description="An explosion at the target point. Hits all units in radius.",
 ))
 BEAM = _reg_shape(Shape(
     name="Beam", tag=Tags.Shape_Beam,
-    base_range=8, base_radius=0, base_charges=4, tier=2, sp_cost=2,
+    base_range=8, base_radius=0, base_charges=6, tier=2, sp_cost=2,
     description="A piercing ray that passes through all units in a line.",
 ))
 CONE = _reg_shape(Shape(
@@ -160,7 +160,7 @@ ORB = _reg_shape(Shape(
 ))
 TOUCH = _reg_shape(Shape(
     name="Touch", tag=Tags.Shape_Touch,
-    base_range=1, base_radius=0, base_charges=8, tier=1, sp_cost=1,
+    base_range=1, base_radius=0, base_charges=12, tier=1, sp_cost=1,
     melee=True,
     description="A melee-range spell. High charges, must be adjacent to target.",
 ))

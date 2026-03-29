@@ -188,12 +188,49 @@ class Renderer:
 
     def _draw_effects(self) -> None:
         self.anims.update()
+
+        # Projectile trails (draw first, behind other effects)
+        for trail in self.anims.projectile_trails:
+            sx, sy = self.camera.tile_to_screen(trail.x, trail.y)
+            overlay = pygame.Surface((DISPLAY_TILE, DISPLAY_TILE), pygame.SRCALPHA)
+            # Draw a small diamond/circle trail
+            half = DISPLAY_TILE // 2
+            pygame.draw.circle(overlay, (*trail.color, trail.alpha), (half, half), 4)
+            self.screen.blit(overlay, (sx, sy))
+
+        # Burst rings
+        for ring in self.anims.burst_rings:
+            sx, sy = self.camera.tile_to_screen(ring.x, ring.y)
+            center_x = sx + DISPLAY_TILE // 2
+            center_y = sy + DISPLAY_TILE // 2
+            radius_px = ring.radius * DISPLAY_TILE
+            if radius_px > 0:
+                ring_surf = pygame.Surface((radius_px * 2 + 4, radius_px * 2 + 4), pygame.SRCALPHA)
+                pygame.draw.circle(ring_surf, (*ring.color, ring.alpha),
+                                   (radius_px + 2, radius_px + 2), radius_px, 2)
+                self.screen.blit(ring_surf,
+                                 (center_x - radius_px - 2, center_y - radius_px - 2))
+
         # Tile flashes
         for flash in self.anims.tile_flashes:
             sx, sy = self.camera.tile_to_screen(flash.x, flash.y)
             overlay = pygame.Surface((DISPLAY_TILE, DISPLAY_TILE), pygame.SRCALPHA)
             overlay.fill((*flash.color, flash.alpha))
             self.screen.blit(overlay, (sx, sy))
+
+        # Death effects (expanding red X)
+        for death in self.anims.death_effects:
+            sx, sy = self.camera.tile_to_screen(death.x, death.y)
+            center_x = sx + DISPLAY_TILE // 2
+            center_y = sy + DISPLAY_TILE // 2
+            size = int(DISPLAY_TILE * death.scale / 2)
+            death_surf = pygame.Surface((DISPLAY_TILE * 2, DISPLAY_TILE * 2), pygame.SRCALPHA)
+            cx, cy = DISPLAY_TILE, DISPLAY_TILE
+            pygame.draw.line(death_surf, (255, 40, 40, death.alpha),
+                             (cx - size, cy - size), (cx + size, cy + size), 3)
+            pygame.draw.line(death_surf, (255, 40, 40, death.alpha),
+                             (cx + size, cy - size), (cx - size, cy + size), 3)
+            self.screen.blit(death_surf, (center_x - DISPLAY_TILE, center_y - DISPLAY_TILE))
 
         # Damage numbers
         for dmg in self.anims.damage_numbers:

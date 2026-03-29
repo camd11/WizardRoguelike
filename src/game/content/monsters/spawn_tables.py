@@ -5,6 +5,7 @@ from typing import Callable
 
 from game.content.monsters.tier1 import TIER1_SPAWNS
 from game.content.monsters.tier2 import TIER2_SPAWNS
+from game.content.monsters.tier3 import TIER3_SPAWNS
 from game.core.unit import Unit
 
 
@@ -13,16 +14,20 @@ def get_spawn_options(difficulty: int) -> list[Callable[[], Unit]]:
 
     Difficulty 1-2: tier 1 only
     Difficulty 3: tier 1 + some tier 2
-    Difficulty 4-5: tier 1 + tier 2
+    Difficulty 4: tier 1 + tier 2 + some tier 3 bosses
+    Difficulty 5: tier 1 + tier 2 + all tier 3 bosses
     """
     if difficulty <= 2:
         return list(TIER1_SPAWNS)
     elif difficulty == 3:
         return list(TIER1_SPAWNS) + TIER2_SPAWNS[:2]
+    elif difficulty == 4:
+        return list(TIER1_SPAWNS) + list(TIER2_SPAWNS) + TIER3_SPAWNS[:2]
     else:
-        return list(TIER1_SPAWNS) + list(TIER2_SPAWNS)
+        return list(TIER1_SPAWNS) + list(TIER2_SPAWNS) + list(TIER3_SPAWNS)
 
 
 def get_monster_count(difficulty: int) -> int:
     """How many monsters to spawn on a level."""
-    return min(4 + difficulty * 2, 14)
+    # Level 1: 5, Level 2: 6, Level 3: 8, Level 4: 9, Level 5: 10
+    return min(3 + difficulty * 2, 12) if difficulty <= 2 else min(4 + difficulty * 2, 12)
