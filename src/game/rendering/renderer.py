@@ -187,9 +187,31 @@ class Renderer:
                     dim.fill((0, 0, 0, 140))
                     self.screen.blit(dim, (sx, sy))
 
-                # Draw exit marker
+                # Draw props
                 if tile.prop == "EXIT":
                     pygame.draw.rect(self.screen, COL_EXIT, (sx + 4, sy + 4, DISPLAY_TILE - 8, DISPLAY_TILE - 8), 2)
+                elif hasattr(tile.prop, 'cur_hp') and hasattr(tile.prop, 'destroyed'):
+                    # Lair rendering
+                    from game.core.prop import Lair
+                    if isinstance(tile.prop, Lair) and not tile.prop.destroyed:
+                        # Red diamond for lair
+                        half = DISPLAY_TILE // 2
+                        pts = [(sx + half, sy + 2), (sx + DISPLAY_TILE - 2, sy + half),
+                               (sx + half, sy + DISPLAY_TILE - 2), (sx + 2, sy + half)]
+                        pygame.draw.polygon(self.screen, (200, 50, 50), pts)
+                        pygame.draw.polygon(self.screen, (255, 80, 80), pts, 1)
+                        # HP bar
+                        hp_pct = tile.prop.cur_hp / max(1, tile.prop.max_hp)
+                        bar_w = DISPLAY_TILE - 4
+                        pygame.draw.rect(self.screen, (80, 20, 20), (sx + 2, sy + DISPLAY_TILE + 1, bar_w, 2))
+                        pygame.draw.rect(self.screen, (200, 50, 50), (sx + 2, sy + DISPLAY_TILE + 1, int(bar_w * hp_pct), 2))
+
+                # Draw cloud zones (semi-transparent color overlay)
+                if tile.cloud and hasattr(tile.cloud, 'color'):
+                    cloud_overlay = pygame.Surface((DISPLAY_TILE, DISPLAY_TILE), pygame.SRCALPHA)
+                    cloud_color = tile.cloud.color if hasattr(tile.cloud, 'color') else (200, 100, 50)
+                    cloud_overlay.fill((*cloud_color, 60))
+                    self.screen.blit(cloud_overlay, (sx, sy))
 
     def _draw_targeting(self) -> None:
         """Draw targeting overlay with element-colored impacted tiles and range circle."""

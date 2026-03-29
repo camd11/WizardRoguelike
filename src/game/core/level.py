@@ -258,6 +258,11 @@ class Level:
         """
         unit = self.get_unit_at(x, y)
         if unit is None or not unit.is_alive():
+            # Check for damageable props (lairs)
+            if self.in_bounds(x, y):
+                tile = self.tiles[x][y]
+                if tile.prop and hasattr(tile.prop, 'take_damage'):
+                    return tile.prop.take_damage(amount)
             return 0
 
         # Damage instance cap
@@ -413,6 +418,19 @@ class Level:
                     # Drain animations from buff effects
                     while self.advance_spells():
                         yield False
+
+            # Advance props (lairs) and clouds
+            for x in range(self.width):
+                for y in range(self.height):
+                    tile = self.tiles[x][y]
+                    # Advance props
+                    if tile.prop and hasattr(tile.prop, 'advance'):
+                        tile.prop.advance(self)
+                    # Advance clouds (remove expired ones)
+                    if tile.cloud and hasattr(tile.cloud, 'advance'):
+                        alive = tile.cloud.advance(self)
+                        if not alive:
+                            tile.cloud = None
 
             # Clean up dead units
             self.units = [u for u in self.units if u.is_alive()]

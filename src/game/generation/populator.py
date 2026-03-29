@@ -92,4 +92,21 @@ def place_monsters(level: Level, rng: GameRNG, difficulty: int,
         if level.add_unit(monster, pos.x, pos.y):
             placed.append(monster)
 
+    # Place lairs (spawners) — difficulty 2+ gets lairs
+    if difficulty >= 2 and len(available) > count + 2:
+        from game.core.prop import Lair
+        num_lairs = min(difficulty - 1, 3)  # 1-3 lairs
+        for j in range(num_lairs):
+            lair_idx = count + j
+            if lair_idx < len(available):
+                pos = available[lair_idx]
+                lair_spawn = rng.choice(spawns)
+                hp = 10 + difficulty * 5
+                interval = max(3, 7 - difficulty)
+                lair = Lair(pos.x, pos.y, lair_spawn,
+                            spawn_interval=interval, max_hp=hp)
+                tile = level.get_tile(pos.x, pos.y)
+                if tile:
+                    tile.prop = lair
+
     return placed
