@@ -117,8 +117,8 @@ ARCANE = _reg_element(Element(
     secondary_effect="arcane_pierce",
 ))
 POISON = _reg_element(Element(
-    name="Poison", tag=Tags.Poison, base_damage=4, tier=1, sp_cost=1,
-    description="Weak initial hit but strong damage over time.",
+    name="Poison", tag=Tags.Poison, base_damage=6, tier=1, sp_cost=1,
+    description="Moderate hit with strong damage over time.",
     dot_damage=4, dot_duration=5, secondary_effect="envenom",
 ))
 
@@ -149,7 +149,7 @@ BEAM = _reg_shape(Shape(
 ))
 CONE = _reg_shape(Shape(
     name="Cone", tag=Tags.Shape_Cone,
-    base_range=0, base_radius=4, base_charges=3, tier=2, sp_cost=2,
+    base_range=0, base_radius=3, base_charges=3, tier=2, sp_cost=2,
     can_target_self=True,
     description="A cone of energy emanating from the caster toward the target direction.",
 ))
@@ -160,9 +160,9 @@ ORB = _reg_shape(Shape(
 ))
 TOUCH = _reg_shape(Shape(
     name="Touch", tag=Tags.Shape_Touch,
-    base_range=1, base_radius=0, base_charges=12, tier=1, sp_cost=1,
+    base_range=1, base_radius=0, base_charges=16, tier=1, sp_cost=1,
     melee=True,
-    description="A melee-range spell. High charges, must be adjacent to target.",
+    description="A melee-range spell. Very high charges, must be adjacent to target.",
 ))
 SELF = _reg_shape(Shape(
     name="Self", tag=Tags.Shape_Self,

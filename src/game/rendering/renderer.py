@@ -401,7 +401,16 @@ class Renderer:
                 self._text(f"  {slot_name}: {equip.name}", 6, y, (180, 180, 255), self.font_small)
                 y += 15
 
-        # Buffs (non-equipment)
+        # Active synergies
+        if hasattr(game, 'synergy_tracker') and game.synergy_tracker.active:
+            y += 10
+            self._text("-- Synergies --", 10, y, (200, 180, 255))
+            y += 18
+            for syn in game.synergy_tracker.get_active_synergies():
+                self._text(f"  {syn.name}", 6, y, (180, 160, 235), self.font_small)
+                y += 15
+
+        # Buffs (non-equipment, temporary)
         temp_buffs = [b for b in player.buffs if b.turns_left > 0]
         if temp_buffs:
             y += 10

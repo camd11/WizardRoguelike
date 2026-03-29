@@ -216,6 +216,16 @@ class ShopUI:
                 _text(screen, label, rect.x + 4, rect.y + 4, col, font_small)
                 mastery_y += ITEM_H
 
+        # Active synergies
+        if hasattr(game, 'synergy_tracker') and game.synergy_tracker.active:
+            syn_y = max(mastery_y + 10, spells_y)
+            _text(screen, "SYNERGIES:", mx, syn_y, (200, 180, 255), font)
+            syn_y += 20
+            for syn in game.synergy_tracker.get_active_synergies():
+                _text(screen, f"  {syn.name}", mx + 4, syn_y, (180, 160, 235), font_small)
+                _text(screen, f"    {syn.description}", mx + 4, syn_y + 13, COL_DIM, font_small)
+                syn_y += 28
+
         # Start button
         btn_w, btn_h = 200, 40
         btn_x = self.screen_w // 2 - btn_w // 2

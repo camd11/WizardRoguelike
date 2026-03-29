@@ -81,16 +81,15 @@ class CraftedSpell(Spell):
         self.description = self._build_description()
 
     def _apply_modifier_stats(self) -> None:
-        """Apply modifier stat modifications."""
+        """Apply modifier stat modifications to base values.
+
+        NOTE: Damage multipliers (Empowered) and range bonuses (Extended)
+        are NOT applied here — they are applied dynamically in get_stat()
+        via modify_stats() to avoid double-application with the stat pipeline.
+        Only non-stat-pipeline values go here.
+        """
         for mod in self._modifiers:
-            # Damage multiplier
-            if mod.damage_mult != 1.0:
-                self.damage = int(self.damage * mod.damage_mult)
-
-            # Range bonus
-            self.range += mod.range_bonus
-
-            # Radius bonus
+            # Radius bonus is safe to apply directly (not in modify_stats)
             self.radius += mod.radius_bonus
 
             # Charges bonus

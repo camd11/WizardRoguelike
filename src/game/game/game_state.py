@@ -29,6 +29,10 @@ class Game:
         from game.crafting.component_upgrades import MasteryTracker
         self.mastery_tracker = MasteryTracker()
 
+        # Synergy system
+        from game.crafting.synergies import SynergyTracker
+        self.synergy_tracker = SynergyTracker()
+
         # SP economy
         self.sp: int = 8  # Starting SP (enough for 2-3 spells)
         self.sp_per_level: int = 4  # SP gained per level cleared
@@ -195,7 +199,15 @@ class Game:
             return {"success": False, "error": "Cannot afford or already owned"}
 
         self.sp -= cost
-        return {"success": True, "cost": cost, "sp_remaining": self.sp}
+
+        # Check for new synergies
+        new_synergies = self.synergy_tracker.check_synergies(
+            self.spell_library.owned_elements, self.player
+        )
+        result = {"success": True, "cost": cost, "sp_remaining": self.sp}
+        if new_synergies:
+            result["synergies_activated"] = new_synergies
+        return result
 
     def buy_mastery(self, mastery_name: str) -> dict:
         """Buy a mastery upgrade by name."""
@@ -316,6 +328,15 @@ class Game:
             slot: {"name": eq.name, "description": eq.description}
             for slot, eq in self.equipped.items()
         }
+
+        # Synergies
+        state["synergies"] = [
+            {"name": s.name, "description": s.description}
+            for s in self.synergy_tracker.get_active_synergies()
+        ]
+
+        # Masteries
+        state["masteries"] = dict(self.mastery_tracker.purchased)
 
         if self.current_level and not self.in_shop:
             level = self.current_level

@@ -138,13 +138,27 @@ class TestCraftedSpell:
     def test_empowered_fire_bolt(self):
         spell = CraftedSpell(FIRE, BOLT, [EMPOWERED])
         assert "Empowered" in spell.name
-        # Base 9 * 1.5 = 13 (int truncation)
-        assert spell.damage == 13
+        # Base damage stored as 9 (unmultiplied); multiplier applied in get_stat
+        assert spell.damage == 9
+        # With a caster, get_stat applies 1.5x: floor(9*1.5) = 13
+        level = Level(9, 9)
+        player = Unit()
+        player.team = Team.PLAYER
+        level.add_unit(player, 1, 1)
+        player.add_spell(spell)
+        assert spell.get_stat("damage") == 13
 
     def test_extended_increases_range(self):
+        # Extended range bonus is applied through get_stat, not stored on spell.range
+        level = Level(9, 9)
+        player = Unit()
+        player.team = Team.PLAYER
+        level.add_unit(player, 1, 1)
         base_spell = CraftedSpell(FIRE, BOLT)
         ext_spell = CraftedSpell(FIRE, BOLT, [EXTENDED])
-        assert ext_spell.range > base_spell.range
+        player.add_spell(base_spell)
+        player.add_spell(ext_spell)
+        assert ext_spell.get_stat("range") > base_spell.get_stat("range")
 
     def test_invalid_recipe_raises(self):
         with pytest.raises(ValueError):

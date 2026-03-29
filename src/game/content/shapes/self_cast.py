@@ -43,7 +43,7 @@ class ElementalAuraBuff(Buff):
 def cast(spell, x: int, y: int) -> Generator[None, None, None]:
     """Apply an elemental aura to the caster."""
     caster = spell.caster
-    damage = max(1, spell.get_stat("damage") // 2)  # Aura does half damage
+    damage = max(2, spell.get_stat("damage") * 2 // 3)  # Aura does 2/3 damage
     duration = spell.get_stat("duration") if spell.duration > 0 else 5
 
     aura = ElementalAuraBuff(

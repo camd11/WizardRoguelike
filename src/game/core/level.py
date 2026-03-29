@@ -232,9 +232,9 @@ class Level:
             except StopIteration:
                 finished.append(i)
 
-        # Remove finished generators (reverse to preserve indices)
+        # Remove finished generators by index (reverse to preserve indices)
         for i in reversed(finished):
-            self.active_spells.remove(self.active_spells[i])
+            del self.active_spells[i]
 
         return len(self.active_spells) > 0
 
