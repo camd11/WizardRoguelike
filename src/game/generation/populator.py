@@ -61,23 +61,45 @@ def place_exit(level: Level, rooms: list[tuple[int, int, int, int]],
     return None
 
 
+def get_reachable_floors(level: Level, start_x: int, start_y: int) -> list[Point]:
+    """Get all floor tiles reachable from a starting position via BFS."""
+    from collections import deque
+    visited = set()
+    reachable = []
+    queue = deque([(start_x, start_y)])
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in visited:
+            continue
+        if not level.in_bounds(x, y) or not level.tiles[x][y].is_floor:
+            continue
+        visited.add((x, y))
+        if level.tiles[x][y].unit is None:
+            reachable.append(Point(x, y))
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            queue.append((x + dx, y + dy))
+    return reachable
+
+
 def place_monsters(level: Level, rng: GameRNG, difficulty: int,
                    rooms: list[tuple[int, int, int, int]]) -> list[Unit]:
-    """Spawn monsters in rooms (excluding the first room where player starts)."""
+    """Spawn monsters on floor tiles reachable from the player."""
     from game.content.monsters.spawn_tables import get_monster_count, get_spawn_options
 
     spawns = get_spawn_options(difficulty)
     count = get_monster_count(difficulty)
 
-    # Get floor tiles NOT in the first room
-    player_room = rooms[0] if rooms else (0, 0, 0, 0)
-    available = []
-    for p in get_floor_tiles(level):
-        # Skip player's room
-        rx, ry, rw, rh = player_room
-        if rx <= p.x < rx + rw and ry <= p.y < ry + rh:
-            continue
-        available.append(p)
+    # Find player position
+    player = level.get_player()
+    if player:
+        available = get_reachable_floors(level, player.x, player.y)
+    else:
+        available = get_floor_tiles(level)
+
+    # Exclude tiles near player spawn (give some breathing room)
+    if player:
+        available = [p for p in available
+                     if abs(p.x - player.x) + abs(p.y - player.y) > 4]
 
     if not available or not spawns:
         return []
