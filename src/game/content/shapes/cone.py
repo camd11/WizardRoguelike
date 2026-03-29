@@ -1,0 +1,37 @@
+"""Cone shape — breath/fan attack from caster toward target direction."""
+from __future__ import annotations
+
+from typing import Generator
+
+from game.core.shapes import cone as cone_iter, get_cone_points
+from game.core.types import Point
+
+
+def cast(spell, x: int, y: int) -> Generator[None, None, None]:
+    """Cone attack from caster toward target direction."""
+    level = spell.level
+    caster = spell.caster
+    origin = Point(caster.x, caster.y)
+    target = Point(x, y)
+    radius = spell.get_stat("radius")
+    damage = spell.get_stat("damage")
+    damage_type = spell.damage_type
+
+    for stage in cone_iter(level, origin, target, radius):
+        for p in stage:
+            if p == origin:
+                continue  # Don't damage self
+            unit = level.get_unit_at(p.x, p.y)
+            if unit is not None and unit.team != caster.team:
+                level.deal_damage(p.x, p.y, damage, damage_type, spell)
+                spell._apply_element_secondary(p.x, p.y)
+                spell._apply_modifier_effects(p.x, p.y)
+        yield
+
+
+def get_impacted_tiles(spell, x: int, y: int) -> list[Point]:
+    if spell.level is None:
+        return [Point(x, y)]
+    origin = Point(spell.caster.x, spell.caster.y)
+    radius = spell.get_stat("radius")
+    return get_cone_points(spell.level, origin, Point(x, y), radius)
