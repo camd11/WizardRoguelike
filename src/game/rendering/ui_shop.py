@@ -59,6 +59,7 @@ class ShopUI:
         self._modifier_rects: dict[str, pygame.Rect] = {}
         self._craft_button: pygame.Rect = pygame.Rect(0, 0, 0, 0)
         self._start_button: pygame.Rect = pygame.Rect(0, 0, 0, 0)
+        self._mastery_rects: dict[str, tuple] = {}  # name -> (rect, mastery)
 
     def draw(self, screen: pygame.Surface, game: Game,
              font: pygame.font.Font, font_large: pygame.font.Font,
@@ -180,17 +181,40 @@ class ShopUI:
         preview_y = max(y_start + HEADER_H + 8 * ITEM_H + 20, self.screen_h // 2 + 20)
         self._draw_craft_preview(screen, game, font, font_small, preview_y)
 
-        # Existing spells
+        # Existing spells (left half)
         spells_y = preview_y + 100
         _text(screen, "YOUR SPELLS:", 30, spells_y, COL_HIGHLIGHT, font)
         sy = spells_y + 22
         if game.player.spells:
-            for sp in game.player.spells:
+            for sp in game.player.spells[:8]:
                 _text(screen, f"  {sp.name}  d:{sp.damage} r:{sp.range} c:{sp.max_charges}",
                       30, sy, COL_TEXT, font_small)
                 sy += 16
         else:
             _text(screen, "  (none — craft a spell first!)", 30, sy, COL_DIM, font_small)
+
+        # Masteries (right half)
+        self._mastery_rects.clear()
+        mastery_y = spells_y
+        mx = self.screen_w // 2 + 20
+        _text(screen, "MASTERIES:", mx, mastery_y, COL_HIGHLIGHT, font)
+        mastery_y += 22
+        if hasattr(game, 'mastery_tracker'):
+            available = game.mastery_tracker.get_available(
+                game.spell_library.owned_elements,
+                game.spell_library.owned_shapes,
+            )
+            for m in available[:8]:
+                affordable = game.sp >= m.sp_cost
+                col = COL_TEXT if affordable else COL_UNAFFORDABLE
+                bonuses_str = ", ".join(f"+{v} {k}" for k, v in m.bonuses.items())
+                label = f"  {m.name} [{m.sp_cost} SP] {bonuses_str}"
+                rect = pygame.Rect(mx, mastery_y, col_w - 20, ITEM_H - 2)
+                self._mastery_rects[m.name] = (rect, m)
+                if m.name == self.hover_item:
+                    pygame.draw.rect(screen, (35, 35, 45), rect)
+                _text(screen, label, rect.x + 4, rect.y + 4, col, font_small)
+                mastery_y += ITEM_H
 
         # Start button
         btn_w, btn_h = 200, 40
@@ -336,6 +360,18 @@ class ShopUI:
                     self.message_color = COL_CRAFT_BAD
             return None
 
+        # Check mastery clicks
+        for name, (rect, mastery) in self._mastery_rects.items():
+            if rect.collidepoint(mx, my):
+                result = game.buy_mastery(name)
+                if result.get("success"):
+                    self.message = f"Learned {name}!"
+                    self.message_color = COL_CRAFT_OK
+                else:
+                    self.message = result.get("error", "Cannot learn mastery")
+                    self.message_color = COL_CRAFT_BAD
+                return None
+
         # Check start button
         if self._start_button.collidepoint(mx, my) and game.player.spells:
             return "start_level"
@@ -348,7 +384,11 @@ class ShopUI:
         for name, rect in {**self._element_rects, **self._shape_rects, **self._modifier_rects}.items():
             if rect.collidepoint(mx, my):
                 self.hover_item = name
-                break
+                return
+        for name, (rect, _) in self._mastery_rects.items():
+            if rect.collidepoint(mx, my):
+                self.hover_item = name
+                return
 
 
 def _text(screen: pygame.Surface, text: str, x: int, y: int,

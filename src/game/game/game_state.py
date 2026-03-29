@@ -52,6 +52,10 @@ class Game:
         # Equipment
         self.equipped: dict[str, object] = {}  # slot_name -> equipment buff
 
+        # Consumables
+        from game.content.consumables import ConsumableInventory
+        self.consumables = ConsumableInventory()
+
     def _create_player(self) -> Unit:
         player = Unit()
         player.name = "Wizard"
@@ -249,12 +253,21 @@ class Game:
         return True
 
     def _award_equipment(self, events: list[str]) -> None:
-        """Award a random equipment drop after clearing a level."""
+        """Award equipment + consumable drops after clearing a level."""
         from game.content.equipment import get_equipment_drop
+        from game.content.consumables import get_random_consumable
+
         item = get_equipment_drop(self.level_num, self.rng)
         if item:
             self.equip_item(item)
             events.append(f"Found equipment: {item.name}!")
+
+        # Award 1-2 consumables
+        num_consumables = 1 + (1 if self.rng.random() < 0.5 else 0)
+        for _ in range(num_consumables):
+            consumable = get_random_consumable(self.rng)
+            if self.consumables.add(consumable):
+                events.append(f"Found consumable: {consumable.name}!")
 
     def get_state(self) -> dict:
         """Get the full game state as a dict (for AI players / serialization)."""

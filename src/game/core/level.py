@@ -541,6 +541,17 @@ class Level:
     def enemies_remaining(self) -> int:
         return sum(1 for u in self.units if u.team == Team.ENEMY and u.is_alive())
 
+    def lairs_remaining(self) -> int:
+        """Count active (non-destroyed) lairs."""
+        from game.core.prop import Lair
+        count = 0
+        for x in range(self.width):
+            for y in range(self.height):
+                tile = self.tiles[x][y]
+                if isinstance(tile.prop, Lair) and not tile.prop.destroyed:
+                    count += 1
+        return count
+
     def is_clear(self) -> bool:
-        """Are all enemies defeated?"""
-        return self.enemies_remaining() == 0
+        """Level is clear when all enemies AND all lairs are destroyed."""
+        return self.enemies_remaining() == 0 and self.lairs_remaining() == 0
