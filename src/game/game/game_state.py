@@ -45,6 +45,9 @@ class Game:
         self.total_turns: int = 0
         self.enemies_killed: int = 0
 
+        # Equipment
+        self.equipped: dict[str, object] = {}  # slot_name -> equipment buff
+
     def _create_player(self) -> Unit:
         player = Unit()
         player.name = "Wizard"
@@ -146,6 +149,8 @@ class Game:
                 self.sp += self.sp_per_level
                 self.in_shop = True
                 events.append(f"Gained {self.sp_per_level} SP. Total: {self.sp}")
+                # Equipment drop on level clear
+                self._award_equipment(events)
                 # Auto-save between levels
                 from game.game.serialization import save_game
                 save_game(self)
@@ -200,6 +205,26 @@ class Game:
             "range": spell.range,
             "charges": spell.max_charges,
         }
+
+    def equip_item(self, equipment) -> bool:
+        """Equip an item. Replaces existing item in that slot."""
+        slot_name = equipment.slot.name
+        # Unequip existing
+        if slot_name in self.equipped:
+            old = self.equipped[slot_name]
+            self.player.remove_buff(old)
+        # Equip new
+        self.equipped[slot_name] = equipment
+        self.player.apply_buff(equipment)
+        return True
+
+    def _award_equipment(self, events: list[str]) -> None:
+        """Award a random equipment drop after clearing a level."""
+        from game.content.equipment import get_equipment_drop
+        item = get_equipment_drop(self.level_num, self.rng)
+        if item:
+            self.equip_item(item)
+            events.append(f"Found equipment: {item.name}!")
 
     def get_state(self) -> dict:
         """Get the full game state as a dict (for AI players / serialization)."""

@@ -127,6 +127,12 @@ class Renderer:
     # Level rendering
     # -------------------------------------------------------------------
     def _draw_tiles(self, level: Level, floor_spr: str, wall_spr: str) -> None:
+        # Compute FOV from player position for visibility dimming
+        player = level.get_player()
+        fov = None
+        if player:
+            fov = level.compute_fov(player.x, player.y)
+
         for x in range(level.width):
             for y in range(level.height):
                 if not self.camera.is_visible(x, y):
@@ -143,6 +149,12 @@ class Renderer:
                     spr = self.assets.get_floor_sprite(floor_spr)
 
                 self.screen.blit(spr, (sx, sy))
+
+                # Dim tiles outside FOV (explored but not currently visible)
+                if fov is not None and not fov[x][y]:
+                    dim = pygame.Surface((DISPLAY_TILE, DISPLAY_TILE), pygame.SRCALPHA)
+                    dim.fill((0, 0, 0, 140))
+                    self.screen.blit(dim, (sx, sy))
 
                 # Draw exit marker
                 if tile.prop == "EXIT":
@@ -305,14 +317,23 @@ class Renderer:
             if y > SCREEN_H - 60:
                 break
 
-        # Buffs
-        if player.buffs:
+        # Equipment (RW2 shows equipped items in left panel)
+        if game.equipped:
+            y += 10
+            self._text("-- Equipment --", 10, y, COL_TEXT_DIM)
+            y += 18
+            for slot_name, equip in sorted(game.equipped.items()):
+                self._text(f"  {slot_name}: {equip.name}", 6, y, (180, 180, 255), self.font_small)
+                y += 15
+
+        # Buffs (non-equipment)
+        temp_buffs = [b for b in player.buffs if b.turns_left > 0]
+        if temp_buffs:
             y += 10
             self._text("-- Buffs --", 10, y, COL_TEXT_DIM)
             y += 18
-            for buff in player.buffs[:8]:
-                dur = f" ({buff.turns_left}t)" if buff.turns_left > 0 else ""
-                self._text(f"  {buff.name}{dur}", 6, y, buff.color, self.font_small)
+            for buff in temp_buffs[:6]:
+                self._text(f"  {buff.name} ({buff.turns_left}t)", 6, y, buff.color, self.font_small)
                 y += 15
 
     # -------------------------------------------------------------------
