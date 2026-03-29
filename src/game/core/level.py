@@ -267,8 +267,16 @@ class Level:
 
         original_amount = amount
 
-        # Apply resistance
+        # Apply resistance (check source for pierce effects)
         resist = min(unit.resists.get(damage_type, 0), MAX_RESIST)
+
+        # Piercing: source spell can reduce effective resistance
+        pierce_pct = 0
+        if hasattr(source, 'get_pierce_pct'):
+            pierce_pct = source.get_pierce_pct()
+        if pierce_pct > 0 and resist > 0:
+            resist = max(0, int(resist * (100 - pierce_pct) / 100))
+
         amount = math.ceil(amount * (100 - resist) / 100)
 
         # Pre-damage event (allows modification/interception)
@@ -373,7 +381,15 @@ class Level:
 
                     unit.pre_advance()
 
-                    if unit.is_player():
+                    # Check for stun/freeze — skip turn if incapacitated
+                    is_stunned = any(
+                        b.name in ("Stunned", "Frozen")
+                        for b in unit.buffs
+                    )
+
+                    if is_stunned:
+                        pass  # Skip action, just advance buffs below
+                    elif unit.is_player():
                         # Wait for player input
                         self.is_awaiting_input = True
                         action = yield False

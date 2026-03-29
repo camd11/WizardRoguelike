@@ -162,6 +162,20 @@ class CraftedSpell(Spell):
             if handler and hasattr(handler, 'apply_effect'):
                 handler.apply_effect(self, self.level, x, y)
 
+    def get_pierce_pct(self) -> int:
+        """Get total resistance pierce percentage from modifiers and element.
+
+        Piercing modifier: 50% pierce. Arcane element: 25% pierce.
+        These stack additively.
+        """
+        total = 0
+        for mod in self._modifiers:
+            total += mod.pierce_pct
+        # Arcane element has innate 25% pierce
+        if self._element.name == "Arcane":
+            total += 25
+        return min(total, 90)  # Cap at 90% pierce
+
     # -------------------------------------------------------------------
     # Stat override for piercing modifier
     # -------------------------------------------------------------------

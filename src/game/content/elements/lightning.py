@@ -19,8 +19,9 @@ def apply_secondary(spell, level, x: int, y: int) -> None:
     """25% chance to stun the target for 1 turn."""
     unit = level.get_unit_at(x, y)
     if unit and unit.is_alive() and unit.team != spell.caster.team:
-        # Use level's RNG if available, otherwise always apply in tests
-        import random
-        if random.random() < 0.25:
+        # Deterministic stun chance based on position + turn
+        turn = level.turn_no if level else 0
+        stun_roll = hash((x, y, turn, "lightning_stun")) % 100
+        if stun_roll < 25:
             stun = StunBuff()
             unit.apply_buff(stun, duration=1)

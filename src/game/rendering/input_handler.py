@@ -61,6 +61,15 @@ class InputHandler:
 
         for event in events:
             if event.type == pygame.KEYDOWN:
+                # Help toggle
+                if event.key == pygame.K_SLASH or event.key == pygame.K_h:
+                    renderer.show_help = not renderer.show_help
+                    return  # Don't process other keys while toggling help
+
+                if renderer.show_help:
+                    renderer.show_help = False
+                    return  # Any key closes help
+
                 # Movement
                 if event.key in MOVE_KEYS:
                     dx, dy = MOVE_KEYS[event.key]

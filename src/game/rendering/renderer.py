@@ -60,6 +60,7 @@ class Renderer:
         self.font_small = pygame.font.SysFont("monospace", FONT_SIZE_SMALL)
 
         # State
+        self.show_help: bool = False
         self.hover_tile: tuple[int, int] | None = None
         self.selected_spell_idx: int = 0
         self.combat_log: list[str] = []
@@ -93,6 +94,10 @@ class Renderer:
         # Status bar at bottom
         self._draw_status_bar(game)
 
+        # Help overlay
+        if self.show_help:
+            self._draw_help_overlay()
+
     def render_shop(self, game: Game) -> None:
         """Render the shop/crafting screen between levels."""
         self.screen.fill(COL_BG)
@@ -115,13 +120,37 @@ class Renderer:
             f"Levels Cleared: {game.level_num}",
             f"Enemies Killed: {game.enemies_killed}",
             f"Total Turns: {game.total_turns}",
+            f"Spells Crafted: {len(game.spell_library.crafted_spells)}",
+            f"Equipment Found: {len(game.equipped)}",
             f"Seed: {game.seed}",
-            "",
-            "Press SPACE to quit",
         ]
+
+        # Spells used
+        if game.player.spells:
+            stats.append("")
+            stats.append("Spells:")
+            for s in game.player.spells[:6]:
+                stats.append(f"  {s.name} (d:{s.damage} r:{s.range})")
+
+        # Equipment
+        if game.equipped:
+            stats.append("")
+            stats.append("Equipment:")
+            for slot, eq in sorted(game.equipped.items()):
+                stats.append(f"  {slot}: {eq.name}")
+
+        # Combat log recap (last 5 entries)
+        if self.combat_log:
+            stats.append("")
+            stats.append("Last Events:")
+            for line in self.combat_log[-5:]:
+                stats.append(f"  {line}")
+
+        stats.extend(["", "Press SPACE to quit, R to restart"])
+
         for i, line in enumerate(stats):
-            surf = self.font.render(line, True, COL_TEXT)
-            self.screen.blit(surf, (SCREEN_W // 2 - surf.get_width() // 2, 280 + i * 24))
+            surf = self.font_small.render(line, True, COL_TEXT)
+            self.screen.blit(surf, (SCREEN_W // 2 - surf.get_width() // 2, 260 + i * 18))
 
     # -------------------------------------------------------------------
     # Level rendering
@@ -473,6 +502,48 @@ class Renderer:
             font = self.font
         surf = font.render(text, True, color)
         self.screen.blit(surf, (x, y))
+
+    def _draw_help_overlay(self) -> None:
+        """Draw keybinding help overlay (toggled with ?)."""
+        overlay = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        self.screen.blit(overlay, (0, 0))
+
+        self._text("KEYBINDINGS", SCREEN_W // 2 - 60, 80, COL_TEXT_HIGHLIGHT, self.font_large)
+
+        bindings = [
+            ("Movement", ""),
+            ("  WASD / Arrow Keys", "Move in 4 directions"),
+            ("  Q E Z C", "Move diagonally"),
+            ("  Space / Numpad 5", "Pass turn (skip)"),
+            ("", ""),
+            ("Spells", ""),
+            ("  1-9", "Select spell"),
+            ("  Left Click", "Cast selected spell at target"),
+            ("  Tab", "Auto-target nearest enemy"),
+            ("", ""),
+            ("General", ""),
+            ("  ? or H", "Toggle this help"),
+            ("  F11", "Toggle fullscreen"),
+            ("  Escape", "Cancel / Menu"),
+            ("", ""),
+            ("Shop", ""),
+            ("  Click components", "Select element + shape + modifiers"),
+            ("  Click CRAFT", "Create spell from selection"),
+            ("  Enter", "Start next level"),
+        ]
+
+        y = 130
+        for key, desc in bindings:
+            if not key:
+                y += 8
+                continue
+            self._text(key, 300, y, COL_TEXT_HIGHLIGHT if not key.startswith(" ") else COL_TEXT, self.font_small)
+            if desc:
+                self._text(desc, 580, y, COL_TEXT_DIM, self.font_small)
+            y += 18
+
+        self._text("Press ? or H to close", SCREEN_W // 2 - 80, SCREEN_H - 40, COL_TEXT_DIM, self.font_small)
 
     def add_log(self, message: str) -> None:
         self.combat_log.append(message)
