@@ -130,7 +130,7 @@ class TestPiercingDamage:
         # effective_resist = int(80 * (100 - 25) / 100) = int(80 * 0.75) = 60
         # damage = ceil(12 * (100 - 60) / 100) = ceil(4.8) = 5
         expected_resist = max(0, int(80 * (100 - 25) / 100))  # 60
-        expected_damage = math.ceil(12 * (100 - expected_resist) / 100)
+        expected_damage = math.ceil(ARCANE.base_damage * (100 - expected_resist) / 100)
         actual_damage = 100 - enemy.cur_hp
         assert actual_damage == expected_damage, (
             f"Expected {expected_damage} damage with 25% pierce vs 80% resist, "
@@ -152,7 +152,7 @@ class TestPiercingDamage:
         _cast_and_drain(level, player, spell, 5, 4)
 
         expected_resist = max(0, int(100 * (100 - 75) / 100))  # 25
-        expected_damage = math.ceil(12 * (100 - expected_resist) / 100)
+        expected_damage = math.ceil(ARCANE.base_damage * (100 - expected_resist) / 100)
         actual_damage = 100 - enemy.cur_hp
         assert actual_damage == expected_damage, (
             f"Expected {expected_damage} with 75% pierce vs 100% resist, "

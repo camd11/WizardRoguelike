@@ -34,8 +34,8 @@ class Game:
         self.synergy_tracker = SynergyTracker()
 
         # SP economy
-        self.sp: int = 8  # Starting SP (enough for 2-3 spells)
-        self.sp_per_level: int = 4  # SP gained per level cleared
+        self.sp: int = 10  # Starting SP (enough for 3-4 spells + modifiers)
+        self.sp_per_level: int = 5  # SP gained per level cleared
 
         # Level tracking
         self.level_num: int = 0
@@ -64,8 +64,8 @@ class Game:
         player = Unit()
         player.name = "Wizard"
         player.team = Team.PLAYER
-        player.max_hp = 120
-        player.cur_hp = 120
+        player.max_hp = 150
+        player.cur_hp = 150
         player.asset_name = "char/player"  # RW2 player sprite
         return player
 

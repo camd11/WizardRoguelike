@@ -122,31 +122,32 @@ class TestCraftedSpell:
     def test_basic_fire_bolt(self):
         spell = CraftedSpell(FIRE, BOLT)
         assert spell.name == "Fire Bolt"
-        assert spell.damage == 9
+        assert spell.damage == FIRE.base_damage
         assert spell.damage_type is Tags.Fire
-        assert spell.range == 7
-        assert spell.max_charges == 8
+        assert spell.range == BOLT.base_range
+        assert spell.max_charges == BOLT.base_charges
         assert Tags.Fire in spell.tags
         assert Tags.Shape_Bolt in spell.tags
 
     def test_ice_burst(self):
         spell = CraftedSpell(ICE, BURST)
         assert spell.name == "Ice Burst"
-        assert spell.damage == 7
-        assert spell.radius == 2
+        assert spell.damage == ICE.base_damage
+        assert spell.radius == BURST.base_radius
 
     def test_empowered_fire_bolt(self):
         spell = CraftedSpell(FIRE, BOLT, [EMPOWERED])
         assert "Empowered" in spell.name
-        # Base damage stored as 9 (unmultiplied); multiplier applied in get_stat
-        assert spell.damage == 9
-        # With a caster, get_stat applies 1.5x: floor(9*1.5) = 13
+        # Base damage stored unmultiplied; multiplier applied in get_stat
+        assert spell.damage == FIRE.base_damage
+        # With a caster, get_stat applies 1.5x
         level = Level(9, 9)
         player = Unit()
         player.team = Team.PLAYER
         level.add_unit(player, 1, 1)
         player.add_spell(spell)
-        assert spell.get_stat("damage") == 13
+        expected = int(FIRE.base_damage * EMPOWERED.damage_mult)
+        assert spell.get_stat("damage") == expected
 
     def test_extended_increases_range(self):
         # Extended range bonus is applied through get_stat, not stored on spell.range

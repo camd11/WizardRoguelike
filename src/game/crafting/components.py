@@ -82,42 +82,42 @@ def _reg_element(e: Element) -> Element:
     return e
 
 FIRE = _reg_element(Element(
-    name="Fire", tag=Tags.Fire, base_damage=9, tier=1, sp_cost=1,
+    name="Fire", tag=Tags.Fire, base_damage=12, tier=1, sp_cost=1,
     description="Burns enemies, dealing damage over time.",
     dot_damage=2, dot_duration=3, secondary_effect="burn",
 ))
 ICE = _reg_element(Element(
-    name="Ice", tag=Tags.Ice, base_damage=7, tier=1, sp_cost=1,
+    name="Ice", tag=Tags.Ice, base_damage=10, tier=1, sp_cost=1,
     description="Freezes enemies, slowing their movement.",
     secondary_effect="freeze",
 ))
 LIGHTNING = _reg_element(Element(
-    name="Lightning", tag=Tags.Lightning, base_damage=11, tier=1, sp_cost=1,
+    name="Lightning", tag=Tags.Lightning, base_damage=14, tier=1, sp_cost=1,
     description="Shocks enemies. Chains to nearby targets.",
     secondary_effect="shock",
 ))
 DARK = _reg_element(Element(
-    name="Dark", tag=Tags.Dark, base_damage=8, tier=2, sp_cost=2,
+    name="Dark", tag=Tags.Dark, base_damage=11, tier=2, sp_cost=2,
     description="Drains life from enemies.",
     secondary_effect="lifedrain",
 ))
 HOLY = _reg_element(Element(
-    name="Holy", tag=Tags.Holy, base_damage=8, tier=2, sp_cost=2,
+    name="Holy", tag=Tags.Holy, base_damage=11, tier=2, sp_cost=2,
     description="Deals bonus damage to undead and demons.",
     secondary_effect="smite",
 ))
 NATURE = _reg_element(Element(
-    name="Nature", tag=Tags.Nature, base_damage=6, tier=1, sp_cost=1,
+    name="Nature", tag=Tags.Nature, base_damage=9, tier=1, sp_cost=1,
     description="Poisons enemies with toxic thorns.",
     dot_damage=3, dot_duration=4, secondary_effect="poison",
 ))
 ARCANE = _reg_element(Element(
-    name="Arcane", tag=Tags.Arcane, base_damage=12, tier=3, sp_cost=3,
+    name="Arcane", tag=Tags.Arcane, base_damage=16, tier=3, sp_cost=3,
     description="Pure magical energy. Ignores a portion of resistance.",
     secondary_effect="arcane_pierce",
 ))
 POISON = _reg_element(Element(
-    name="Poison", tag=Tags.Poison, base_damage=6, tier=1, sp_cost=1,
+    name="Poison", tag=Tags.Poison, base_damage=8, tier=1, sp_cost=1,
     description="Moderate hit with strong damage over time.",
     dot_damage=4, dot_duration=5, secondary_effect="envenom",
 ))

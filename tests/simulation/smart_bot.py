@@ -168,6 +168,16 @@ class SmartBot:
                     sp = result["sp_remaining"]
                     break
 
+        # Priority 5: Buy masteries if affordable
+        if hasattr(self.game, 'mastery_tracker'):
+            available = self.game.mastery_tracker.get_available(
+                lib.owned_elements, lib.owned_shapes
+            )
+            for mastery in available:
+                if self.game.sp >= mastery.sp_cost:
+                    self.game.buy_mastery(mastery.name)
+                    break  # One mastery per level
+
     def _play_turn(self) -> dict:
         """Tactical turn: prioritize threats, use positioning, manage resources."""
         state = self.game.get_state()
@@ -186,6 +196,16 @@ class SmartBot:
         px, py = player["x"], player["y"]
         hp_pct = player["hp"] / max(1, player["max_hp"])
 
+        # USE CONSUMABLES when needed
+        if hasattr(self.game, 'consumables'):
+            items = self.game.consumables.get_items()
+            # Use healing potion when below 40% HP
+            if hp_pct < 0.40:
+                for i, c in enumerate(items):
+                    if "Healing" in c.name or "Shield" in c.name:
+                        self.game.consumables.use(i, self.game.player, self.game.current_level)
+                        return self._submit(PassAction())  # Using consumable costs turn
+
         # Score enemies by threat (closer + higher damage = higher threat)
         def threat_score(e):
             dist = max(abs(e["x"] - px), abs(e["y"] - py))
@@ -200,6 +220,22 @@ class SmartBot:
             retreat = self._get_retreat_move(px, py, nearest)
             if retreat:
                 return self._submit(retreat)
+
+        # TARGET LAIRS first (they spawn endless enemies)
+        if self.game.current_level:
+            from game.core.prop import Lair
+            for x in range(self.game.current_level.width):
+                for y in range(self.game.current_level.height):
+                    tile = self.game.current_level.tiles[x][y]
+                    if isinstance(tile.prop, Lair) and not tile.prop.destroyed:
+                        # Try to cast at lair
+                        for i, spell_data in enumerate(player["spells"]):
+                            if spell_data["charges"] <= 0 or spell_data["cooldown"] > 0:
+                                continue
+                            spell = self.game.player.spells[i]
+                            if spell.can_cast(x, y) and spell.can_pay_costs():
+                                return self._submit(CastAction(spell=spell, x=x, y=y))
+                        break  # Only try first lair found
 
         # Find best spell to cast
         best_spell = None
