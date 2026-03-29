@@ -118,6 +118,9 @@ class Tags:
     Shape_Touch = Tag("Shape_Touch", (200, 200, 200))
     Shape_Self = Tag("Shape_Self", (200, 200, 200))
     Shape_Summon = Tag("Shape_Summon", (200, 200, 200))
+    Shape_Chain = Tag("Shape_Chain", (200, 200, 200))
+    Shape_Wall = Tag("Shape_Wall", (200, 200, 200))
+    Shape_Nova = Tag("Shape_Nova", (200, 200, 200))
 
     # Unit type tags
     Living = Tag("Living", (200, 150, 100))

@@ -23,12 +23,12 @@ class TestComponentRegistries:
             assert name in ELEMENTS
 
     def test_all_shapes_registered(self):
-        assert len(SHAPES) == 8
+        assert len(SHAPES) >= 8  # Base 8 + expansions
         for name in ["Bolt", "Burst", "Beam", "Cone", "Orb", "Touch", "Self", "Summon"]:
             assert name in SHAPES
 
     def test_all_modifiers_registered(self):
-        assert len(MODIFIERS) == 8
+        assert len(MODIFIERS) >= 8  # Base 8 + expansions
         for name in ["Empowered", "Extended", "Lingering", "Splitting",
                       "Channeled", "Homing", "Piercing", "Volatile"]:
             assert name in MODIFIERS

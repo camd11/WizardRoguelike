@@ -7,6 +7,7 @@ def get_modifier_handler(modifier_name: str):
     from game.content.modifiers import (
         empowered, extended, lingering, splitting,
         channeled, homing, piercing, volatile,
+        quickened, widened, vampiric,
     )
     handlers = {
         "Empowered": empowered,
@@ -17,5 +18,8 @@ def get_modifier_handler(modifier_name: str):
         "Homing": homing,
         "Piercing": piercing,
         "Volatile": volatile,
+        "Quickened": quickened,
+        "Widened": widened,
+        "Vampiric": vampiric,
     }
     return handlers.get(modifier_name)

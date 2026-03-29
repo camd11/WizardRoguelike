@@ -175,6 +175,22 @@ SUMMON = _reg_shape(Shape(
     base_range=4, base_radius=0, base_charges=2, tier=2, sp_cost=2,
     description="Summons an elemental minion at the target location.",
 ))
+CHAIN = _reg_shape(Shape(
+    name="Chain", tag=Tags.Shape_Chain,
+    base_range=6, base_radius=0, base_charges=5, tier=2, sp_cost=2,
+    description="A bolt that bounces to 2 nearby enemies, each hit dealing 80% of the previous.",
+))
+WALL = _reg_shape(Shape(
+    name="Wall", tag=Tags.Shape_Wall,
+    base_range=5, base_radius=0, base_charges=3, tier=2, sp_cost=2,
+    description="Creates a 5-tile barrier of damage zones perpendicular to the aim direction.",
+))
+NOVA = _reg_shape(Shape(
+    name="Nova", tag=Tags.Shape_Nova,
+    base_range=0, base_radius=3, base_charges=3, tier=2, sp_cost=2,
+    can_target_self=True,
+    description="A self-centered explosion that damages all enemies in radius 3.",
+))
 
 
 # ===========================================================================
@@ -230,5 +246,21 @@ VOLATILE = _reg_modifier(Modifier(
     name="Volatile", tier=2, sp_cost=2,
     description="Target explodes on death, dealing area damage in radius 2.",
     volatile_radius=2,
+    incompatible_with=frozenset({"Self"}),
+))
+QUICKENED = _reg_modifier(Modifier(
+    name="Quickened", tier=1, sp_cost=1,
+    description="Grants 3 bonus charges, allowing more frequent casting.",
+    charges_bonus=3,
+))
+WIDENED = _reg_modifier(Modifier(
+    name="Widened", tier=1, sp_cost=1,
+    description="Increases spell radius by 1 for area-of-effect spells.",
+    radius_bonus=1,
+    incompatible_with=frozenset({"Bolt", "Beam", "Touch", "Chain"}),
+))
+VAMPIRIC = _reg_modifier(Modifier(
+    name="Vampiric", tier=2, sp_cost=2,
+    description="Heals caster for 25% of damage dealt.",
     incompatible_with=frozenset({"Self"}),
 ))
