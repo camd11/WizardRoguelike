@@ -450,6 +450,34 @@ class Renderer:
 
                 y += 10
 
+            # Check for lair on tile
+            elif game.current_level.in_bounds(tx, ty):
+                tile = game.current_level.tiles[tx][ty]
+                from game.core.prop import Lair
+                if isinstance(tile.prop, Lair) and not tile.prop.destroyed:
+                    lair = tile.prop
+                    self._text("LAIR", panel_x + 10, y, (255, 80, 80), self.font_large)
+                    y += 24
+                    self._text(f"HP: {lair.cur_hp}/{lair.max_hp}", panel_x + 10, y, COL_ENEMY_HP)
+                    y += 18
+                    self._text(f"Spawns every {lair.spawn_interval} turns", panel_x + 10, y, COL_TEXT_DIM, self.font_small)
+                    y += 14
+                    self._text("Destroy to stop spawning!", panel_x + 10, y, (255, 200, 100), self.font_small)
+                    y += 20
+                elif tile.cloud and hasattr(tile.cloud, 'name'):
+                    self._text(tile.cloud.name, panel_x + 10, y, tile.cloud.color, self.font_large)
+                    y += 24
+                    self._text(f"Turns left: {tile.cloud.turns_left}", panel_x + 10, y, COL_TEXT_DIM, self.font_small)
+                    y += 20
+
+        # Consumables section
+        if hasattr(game, 'consumables') and game.consumables.get_items():
+            self._text("-- Consumables (F1-F6) --", panel_x + 10, max(y, 200), COL_TEXT_DIM)
+            cy = max(y + 16, 216)
+            for i, c in enumerate(game.consumables.get_items()):
+                self._text(f"  F{i+1}: {c.name}", panel_x + 10, cy, COL_TEXT, self.font_small)
+                cy += 14
+
         # Combat log (RW2 shows recent events in right panel)
         self._text("-- Combat Log --", panel_x + 10, max(y, SCREEN_H // 2), COL_TEXT_DIM)
         log_y = max(y + 18, SCREEN_H // 2 + 18)

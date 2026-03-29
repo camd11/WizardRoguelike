@@ -102,6 +102,18 @@ class InputHandler:
                 elif event.key == pygame.K_TAB:
                     self._auto_target_enemy(player, level, renderer)
 
+                # F1-F6: use consumables
+                elif event.key in (pygame.K_F1, pygame.K_F2, pygame.K_F3,
+                                   pygame.K_F4, pygame.K_F5, pygame.K_F6):
+                    idx = event.key - pygame.K_F1
+                    if hasattr(game, 'consumables'):
+                        items = game.consumables.get_items()
+                        if idx < len(items):
+                            used = game.consumables.use(idx, player, level)
+                            if used:
+                                renderer.add_log(f"Used {items[idx].name}")
+                                self.pending_action = PassAction()  # Using item costs turn
+
             elif event.type == pygame.MOUSEMOTION:
                 mx, my = event.pos
                 tx, ty = renderer.camera.screen_to_tile(mx, my)
