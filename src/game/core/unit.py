@@ -146,32 +146,9 @@ class Unit:
     # AI
     # -----------------------------------------------------------------------
     def get_ai_action(self) -> MoveAction | CastAction | PassAction | None:
-        """Default AI: try to cast best spell, else move toward nearest enemy."""
-        from game.core.actions import CastAction, MoveAction, PassAction
-
-        if self.level is None:
-            return PassAction()
-
-        # Try each spell
-        for spell in self.spells:
-            if not spell.can_pay_costs():
-                continue
-            target = spell.get_ai_target()
-            if target is not None:
-                return CastAction(spell=spell, x=target.x, y=target.y)
-
-        # Move toward nearest enemy
-        nearest = self._find_nearest_enemy()
-        if nearest is not None and not self.stationary:
-            path = self.level.find_path(
-                self.x, self.y, nearest.x, nearest.y, self.flying
-            )
-            if path and len(path) > 1:
-                next_pos = path[1]
-                if self.level.tiles[next_pos[0]][next_pos[1]].can_walk(self.flying):
-                    return MoveAction(x=next_pos[0], y=next_pos[1])
-
-        return PassAction()
+        """AI decision making using the behavior system."""
+        from game.ai.base_ai import get_ai_action as ai_decide
+        return ai_decide(self)
 
     def _find_nearest_enemy(self) -> Unit | None:
         if self.level is None:

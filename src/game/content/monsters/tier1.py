@@ -54,7 +54,7 @@ def make_goblin_archer() -> Unit:
     u.cur_hp = 10
     u.tags = [Tags.Living]
     u.asset_name = "char/goblin"
-    u.add_spell(SimpleRangedAttack(damage=4, spell_range=5, name="Arrow"))
+    u.add_spell(SimpleRangedAttack(damage=3, spell_range=5, name="Arrow"))
     u.add_spell(SimpleMeleeAttack(damage=2, name="Dagger"))
     return u
 

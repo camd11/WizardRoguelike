@@ -268,12 +268,68 @@ class Game:
             },
         }
 
+        # Equipment
+        state["equipment"] = {
+            slot: {"name": eq.name, "description": eq.description}
+            for slot, eq in self.equipped.items()
+        }
+
         if self.current_level and not self.in_shop:
+            level = self.current_level
+            player = self.player
+
+            # Compute FOV for visibility info
+            fov = level.compute_fov(player.x, player.y)
+
+            # Build tile grid (only visible tiles)
+            tiles = []
+            for y in range(level.height):
+                row = []
+                for x in range(level.width):
+                    if fov[x][y]:
+                        tile = level.tiles[x][y]
+                        t = {"type": tile.tile_type.name}
+                        if tile.prop == "EXIT":
+                            t["prop"] = "EXIT"
+                        if tile.unit and tile.unit.is_alive():
+                            t["unit"] = tile.unit.name
+                        row.append(t)
+                    else:
+                        row.append({"type": "HIDDEN"})
+                tiles.append(row)
+
+            # Available actions for the current state
+            available_actions = []
+            if level.is_awaiting_input:
+                # Movement options
+                from game.core.types import Point
+                for p in Point(player.x, player.y).adjacent():
+                    if level.in_bounds(p.x, p.y) and level.tiles[p.x][p.y].can_walk(player.flying):
+                        available_actions.append({"type": "move", "x": p.x, "y": p.y})
+                available_actions.append({"type": "pass"})
+                # Castable spells
+                for i, spell in enumerate(player.spells):
+                    if spell.can_pay_costs():
+                        targets = []
+                        for u in level.units:
+                            if u.team != player.team and u.is_alive():
+                                if spell.can_cast(u.x, u.y):
+                                    targets.append({"x": u.x, "y": u.y, "name": u.name})
+                        if targets:
+                            available_actions.append({
+                                "type": "cast",
+                                "spell_idx": i,
+                                "spell_name": spell.name,
+                                "targets": targets,
+                            })
+
             state["level"] = {
-                "width": self.current_level.width,
-                "height": self.current_level.height,
-                "turn_no": self.current_level.turn_no,
-                "enemies_remaining": self.current_level.enemies_remaining(),
+                "width": level.width,
+                "height": level.height,
+                "turn_no": level.turn_no,
+                "enemies_remaining": level.enemies_remaining(),
+                "tiles": tiles,
+                "available_actions": available_actions,
                 "units": [
                     {
                         "name": u.name,
