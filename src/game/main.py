@@ -1,11 +1,12 @@
 """Main entry point — Pygame init, game loop, state machine.
 
-State flow (modeled on RW2):
-  SHOP → LEVEL → SHOP → LEVEL → ... → GAME_OVER
+State flow:
+  TITLE → SHOP → LEVEL → SHOP → ... → GAME_OVER → TITLE
 
-In SHOP: clickable component grid, craft spells, click Start
-In LEVEL: turn-based gameplay until all enemies dead or player dies
-In GAME_OVER: show stats, press Space to quit or R to restart
+TITLE: New Game / Continue / Quit
+SHOP: clickable component grid, craft spells, click Start
+LEVEL: turn-based gameplay until all enemies dead or player dies
+GAME_OVER: show stats, press Space to return to title or R to restart
 """
 from __future__ import annotations
 
@@ -16,16 +17,73 @@ import pygame
 
 from game.core.events import EventOnDamaged, EventOnDeath
 from game.game.game_state import Game
-from game.game.serialization import load_game, restore_game
+from game.game.serialization import delete_save, list_saves, load_game, restore_game
 from game.rendering.input_handler import InputHandler
 from game.rendering.renderer import SCREEN_H, SCREEN_W, Renderer
 from game.rendering.ui_shop import ShopUI
 
 
 class GameMode(Enum):
+    TITLE = auto()
     SHOP = auto()
     LEVEL = auto()
     GAME_OVER = auto()
+
+
+def _draw_title(screen: pygame.Surface, font_large, font, font_small, has_save: bool) -> dict:
+    """Draw title screen. Returns button rects."""
+    screen.fill((12, 10, 20))
+
+    # Title
+    title = "WIZARD ROGUELIKE"
+    subtitle = "Spell Crafter"
+    t_surf = font_large.render(title, True, (255, 220, 100))
+    s_surf = font.render(subtitle, True, (180, 180, 200))
+    screen.blit(t_surf, (SCREEN_W // 2 - t_surf.get_width() // 2, 180))
+    screen.blit(s_surf, (SCREEN_W // 2 - s_surf.get_width() // 2, 225))
+
+    # Tagline
+    tag = "Combine Elements, Shapes, and Modifiers to craft your spells"
+    tag_surf = font_small.render(tag, True, (120, 120, 140))
+    screen.blit(tag_surf, (SCREEN_W // 2 - tag_surf.get_width() // 2, 260))
+
+    buttons = {}
+    btn_w, btn_h = 240, 44
+    btn_x = SCREEN_W // 2 - btn_w // 2
+    y = 320
+
+    # New Game button
+    new_rect = pygame.Rect(btn_x, y, btn_w, btn_h)
+    pygame.draw.rect(screen, (60, 80, 120), new_rect, border_radius=6)
+    pygame.draw.rect(screen, (100, 120, 160), new_rect, 2, border_radius=6)
+    lbl = font.render("New Game", True, (220, 220, 240))
+    screen.blit(lbl, (btn_x + btn_w // 2 - lbl.get_width() // 2, y + 10))
+    buttons["new"] = new_rect
+    y += 60
+
+    # Continue button (only if save exists)
+    if has_save:
+        cont_rect = pygame.Rect(btn_x, y, btn_w, btn_h)
+        pygame.draw.rect(screen, (50, 90, 60), cont_rect, border_radius=6)
+        pygame.draw.rect(screen, (80, 140, 90), cont_rect, 2, border_radius=6)
+        lbl = font.render("Continue", True, (200, 255, 200))
+        screen.blit(lbl, (btn_x + btn_w // 2 - lbl.get_width() // 2, y + 10))
+        buttons["continue"] = cont_rect
+        y += 60
+
+    # Quit button
+    quit_rect = pygame.Rect(btn_x, y, btn_w, btn_h)
+    pygame.draw.rect(screen, (80, 40, 40), quit_rect, border_radius=6)
+    pygame.draw.rect(screen, (140, 60, 60), quit_rect, 2, border_radius=6)
+    lbl = font.render("Quit", True, (220, 180, 180))
+    screen.blit(lbl, (btn_x + btn_w // 2 - lbl.get_width() // 2, y + 10))
+    buttons["quit"] = quit_rect
+
+    # Version info
+    ver = font_small.render("v0.1 — 8 elements, 11 shapes, 11 modifiers, 40+ monsters", True, (60, 60, 80))
+    screen.blit(ver, (SCREEN_W // 2 - ver.get_width() // 2, SCREEN_H - 40))
+
+    return buttons
 
 
 def main(seed: int | None = None) -> None:
@@ -35,17 +93,12 @@ def main(seed: int | None = None) -> None:
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     clock = pygame.time.Clock()
 
-    # Check for saved game
-    save_data = load_game()
-    if save_data is not None:
-        game = restore_game(save_data)
-    else:
-        game = Game(seed=seed)
-
     renderer = Renderer(screen)
     input_handler = InputHandler()
     shop_ui = ShopUI(SCREEN_W, SCREEN_H)
-    mode = GameMode.SHOP
+    mode = GameMode.TITLE
+    game = None
+    title_buttons = {}
 
     # Hook damage events to renderer for visual feedback
     def _on_damaged(evt):
@@ -76,7 +129,36 @@ def main(seed: int | None = None) -> None:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
 
-        if mode == GameMode.SHOP:
+        if mode == GameMode.TITLE:
+            has_save = bool(list_saves())
+            title_buttons = _draw_title(screen, renderer.font_large, renderer.font,
+                                         renderer.font_small, has_save)
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mx, my = event.pos
+                    if title_buttons.get("new") and title_buttons["new"].collidepoint(mx, my):
+                        delete_save()  # Fresh start
+                        game = Game(seed=seed)
+                        shop_ui = ShopUI(SCREEN_W, SCREEN_H)
+                        renderer = Renderer(screen)
+                        mode = GameMode.SHOP
+                    elif title_buttons.get("continue") and title_buttons["continue"].collidepoint(mx, my):
+                        save_data = load_game()
+                        if save_data:
+                            game = restore_game(save_data)
+                            renderer = Renderer(screen)
+                            shop_ui = ShopUI(SCREEN_W, SCREEN_H)
+                            mode = GameMode.SHOP
+                    elif title_buttons.get("quit") and title_buttons["quit"].collidepoint(mx, my):
+                        running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                        game = Game(seed=seed)
+                        shop_ui = ShopUI(SCREEN_W, SCREEN_H)
+                        renderer = Renderer(screen)
+                        mode = GameMode.SHOP
+
+        elif mode == GameMode.SHOP:
             # Handle shop input (clicks and keyboard)
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -124,9 +206,10 @@ def main(seed: int | None = None) -> None:
             for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        running = False
+                        delete_save()
+                        mode = GameMode.TITLE
                     elif event.key == pygame.K_r:
-                        # Restart
+                        delete_save()
                         game = Game(seed=None)
                         renderer = Renderer(screen)
                         shop_ui = ShopUI(SCREEN_W, SCREEN_H)
