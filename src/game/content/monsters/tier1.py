@@ -13,7 +13,7 @@ def make_rat() -> Unit:
     u.max_hp = 8
     u.cur_hp = 8
     u.tags = [Tags.Living]
-    u.asset_name = "char/bat"  # Reuse RW2 bat sprite for now
+    u.asset_name = "char/bat"
     u.add_spell(SimpleMeleeAttack(damage=3, name="Bite"))
     return u
 
@@ -27,7 +27,7 @@ def make_skeleton() -> Unit:
     u.tags = [Tags.Undead]
     u.resists[Tags.Dark] = 50
     u.resists[Tags.Holy] = -50
-    u.asset_name = "char/skeleton"
+    u.asset_name = "char/bone_knight"
     u.add_spell(SimpleMeleeAttack(damage=4, name="Slash"))
     return u
 
@@ -41,7 +41,7 @@ def make_slime() -> Unit:
     u.tags = [Tags.Living]
     u.resists[Tags.Physical] = 50
     u.resists[Tags.Fire] = -50
-    u.asset_name = "char/slime_green"
+    u.asset_name = "char/slime_form"
     u.add_spell(SimpleMeleeAttack(damage=3, damage_type=Tags.Poison, name="Engulf"))
     return u
 
@@ -69,7 +69,7 @@ def make_imp() -> Unit:
     u.tags = [Tags.Demon]
     u.resists[Tags.Fire] = 50
     u.resists[Tags.Holy] = -50
-    u.asset_name = "char/firebat"
+    u.asset_name = "char/imp_coal"
     u.add_spell(SimpleRangedAttack(damage=3, damage_type=Tags.Fire,
                                     spell_range=4, name="Fire Spit"))
     return u

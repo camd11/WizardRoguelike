@@ -51,6 +51,7 @@ class Game:
         player.team = Team.PLAYER
         player.max_hp = 100
         player.cur_hp = 100
+        player.asset_name = "char/player"  # RW2 player sprite
         return player
 
     def start_level(self) -> GeneratedLevel:

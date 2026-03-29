@@ -64,7 +64,7 @@ def make_dark_mage() -> Unit:
     u.tags = [Tags.Living]
     u.resists[Tags.Dark] = 50
     u.resists[Tags.Holy] = -50
-    u.asset_name = "char/dark_mage"
+    u.asset_name = "char/dark_priest"
     u.add_spell(SimpleRangedAttack(damage=8, damage_type=Tags.Dark,
                                     spell_range=6, name="Shadow Bolt"))
     return u

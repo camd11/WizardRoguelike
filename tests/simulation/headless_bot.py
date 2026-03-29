@@ -9,19 +9,24 @@ from __future__ import annotations
 from game.core.actions import CastAction, MoveAction, PassAction
 from game.core.types import Point
 from game.game.game_state import Game
+from tests.replay.recorder import ReplayRecorder
 
 
 class HeadlessBot:
-    """AI bot that plays the game through the Game API."""
+    """AI bot that plays the game through the Game API.
 
-    def __init__(self, seed: int = 42) -> None:
+    Set record=True to produce a replay file that can be watched
+    visually with `python -m game.replay_viewer <file.json>`.
+    """
+
+    def __init__(self, seed: int = 42, record: bool = False) -> None:
         self.game = Game(seed=seed)
         self.actions_taken: list[str] = []
         self.turns_played: int = 0
+        self.recorder: ReplayRecorder | None = ReplayRecorder(seed) if record else None
 
     def setup_build(self) -> None:
         """Buy components and craft initial spells."""
-        # Buy Fire + Bolt + Burst (basic loadout)
         self.game.buy_component("element", "Fire")
         self.game.buy_component("element", "Ice")
         self.game.buy_component("shape", "Bolt")
@@ -29,6 +34,15 @@ class HeadlessBot:
         self.game.craft_spell("Fire", "Bolt")
         self.game.craft_spell("Fire", "Touch")
         self.game.craft_spell("Ice", "Bolt")
+
+        if self.recorder:
+            for elem in ["Fire", "Ice"]:
+                self.recorder.record_shop_action("buy", component_type="element", name=elem)
+            for shape in ["Bolt", "Touch"]:
+                self.recorder.record_shop_action("buy", component_type="shape", name=shape)
+            self.recorder.record_shop_action("craft", element="Fire", shape="Bolt")
+            self.recorder.record_shop_action("craft", element="Fire", shape="Touch")
+            self.recorder.record_shop_action("craft", element="Ice", shape="Bolt")
 
     def play_full_run(self, max_turns: int = 500) -> dict:
         """Play a complete run. Returns summary stats."""
@@ -99,6 +113,9 @@ class HeadlessBot:
             if spell.can_cast(nearest["x"], nearest["y"]) and spell.can_pay_costs():
                 action = CastAction(spell=spell, x=nearest["x"], y=nearest["y"])
                 self.actions_taken.append(f"Cast {spell.name} at ({nearest['x']},{nearest['y']})")
+                if self.recorder:
+                    turn = self.game.current_level.turn_no if self.game.current_level else 0
+                    self.recorder.record_action(turn, action)
                 return self.game.submit_action(action)
 
         # No spell available — move toward nearest enemy
@@ -110,8 +127,15 @@ class HeadlessBot:
 
             action = MoveAction(x=target_x, y=target_y)
             self.actions_taken.append(f"Move to ({target_x},{target_y})")
+            if self.recorder:
+                turn = self.game.current_level.turn_no if self.game.current_level else 0
+                self.recorder.record_action(turn, action)
             return self.game.submit_action(action)
 
         # Adjacent but can't cast — pass
+        action = PassAction()
         self.actions_taken.append("Pass")
-        return self.game.submit_action(PassAction())
+        if self.recorder:
+            turn = self.game.current_level.turn_no if self.game.current_level else 0
+            self.recorder.record_action(turn, action)
+        return self.game.submit_action(action)
