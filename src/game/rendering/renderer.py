@@ -65,6 +65,8 @@ class Renderer:
         self.selected_spell_idx: int = 0
         self.combat_log: list[str] = []
         self._target_tiles: list[tuple[int, int]] = []
+        self._target_color: tuple[int, int, int] = (255, 255, 100)
+        self._spell_range_data: tuple | None = None  # (cx, cy, range, color)
 
     def render_game(self, game: Game) -> None:
         """Render the full game screen (level mode)."""
@@ -190,11 +192,26 @@ class Renderer:
                     pygame.draw.rect(self.screen, COL_EXIT, (sx + 4, sy + 4, DISPLAY_TILE - 8, DISPLAY_TILE - 8), 2)
 
     def _draw_targeting(self) -> None:
-        """Draw targeting overlay for selected spell."""
+        """Draw targeting overlay with element-colored impacted tiles and range circle."""
+        # Draw range circle for selected spell
+        if self._spell_range_data:
+            cx, cy, r, color = self._spell_range_data
+            scx, scy = self.camera.tile_to_screen(cx, cy)
+            center_px = scx + DISPLAY_TILE // 2
+            center_py = scy + DISPLAY_TILE // 2
+            radius_px = int(r * DISPLAY_TILE)
+            if radius_px > 0:
+                circle_surf = pygame.Surface((radius_px * 2 + 4, radius_px * 2 + 4), pygame.SRCALPHA)
+                pygame.draw.circle(circle_surf, (*color, 30), (radius_px + 2, radius_px + 2), radius_px)
+                pygame.draw.circle(circle_surf, (*color, 60), (radius_px + 2, radius_px + 2), radius_px, 1)
+                self.screen.blit(circle_surf, (center_px - radius_px - 2, center_py - radius_px - 2))
+
+        # Draw impacted tiles
         if not self._target_tiles:
             return
+        color = self._target_color
         overlay = pygame.Surface((DISPLAY_TILE, DISPLAY_TILE), pygame.SRCALPHA)
-        overlay.fill((255, 255, 100, 50))
+        overlay.fill((*color, 50))
         for tx, ty in self._target_tiles:
             sx, sy = self.camera.tile_to_screen(tx, ty)
             self.screen.blit(overlay, (sx, sy))
@@ -280,11 +297,18 @@ class Renderer:
             text.set_alpha(dmg.alpha)
             self.screen.blit(text, (sx + 8, sy + dmg.y_offset))
 
-    def set_target_tiles(self, tiles: list[tuple[int, int]]) -> None:
+    def set_target_tiles(self, tiles: list[tuple[int, int]],
+                         color: tuple[int, int, int] = (255, 255, 100)) -> None:
         self._target_tiles = tiles
+        self._target_color = color
+
+    def set_spell_range(self, cx: int, cy: int, spell_range: int,
+                        color: tuple[int, int, int] = (200, 200, 200)) -> None:
+        self._spell_range_data = (cx, cy, spell_range, color)
 
     def clear_target_tiles(self) -> None:
         self._target_tiles = []
+        self._spell_range_data = None
 
     # -------------------------------------------------------------------
     # Left panel (Character info — matches RW2's left panel)

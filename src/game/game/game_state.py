@@ -25,6 +25,10 @@ class Game:
         self.player = self._create_player()
         self.spell_library = SpellLibrary()
 
+        # Mastery system
+        from game.crafting.component_upgrades import MasteryTracker
+        self.mastery_tracker = MasteryTracker()
+
         # SP economy
         self.sp: int = 8  # Starting SP (enough for 2-3 spells)
         self.sp_per_level: int = 4  # SP gained per level cleared
@@ -188,6 +192,32 @@ class Game:
 
         self.sp -= cost
         return {"success": True, "cost": cost, "sp_remaining": self.sp}
+
+    def buy_mastery(self, mastery_name: str) -> dict:
+        """Buy a mastery upgrade by name."""
+        if not self.in_shop:
+            return {"success": False, "error": "Not in shop"}
+
+        available = self.mastery_tracker.get_available(
+            self.spell_library.owned_elements,
+            self.spell_library.owned_shapes,
+        )
+
+        mastery = None
+        for m in available:
+            if m.name == mastery_name:
+                mastery = m
+                break
+
+        if mastery is None:
+            return {"success": False, "error": f"Mastery '{mastery_name}' not available"}
+
+        if self.sp < mastery.sp_cost:
+            return {"success": False, "error": f"Need {mastery.sp_cost} SP, have {self.sp}"}
+
+        self.mastery_tracker.buy(mastery, self.player)
+        self.sp -= mastery.sp_cost
+        return {"success": True, "mastery": mastery.name, "sp_remaining": self.sp}
 
     def craft_spell(self, element: str, shape: str,
                     modifiers: list[str] | None = None) -> dict:

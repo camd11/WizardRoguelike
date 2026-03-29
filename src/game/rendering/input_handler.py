@@ -86,12 +86,15 @@ class InputHandler:
                     idx = SPELL_KEYS[event.key]
                     if idx < len(player.spells):
                         renderer.selected_spell_idx = idx
-                        # Show targeting preview
                         spell = player.spells[idx]
-                        if spell.can_pay_costs() and renderer.hover_tile:
-                            tx, ty = renderer.hover_tile
-                            tiles = spell.get_impacted_tiles(tx, ty)
-                            renderer.set_target_tiles([(p.x, p.y) for p in tiles])
+                        # Show range circle
+                        spell_color = spell.damage_type.color if hasattr(spell.damage_type, 'color') else (200, 200, 200)
+                        if spell.can_pay_costs():
+                            renderer.set_spell_range(player.x, player.y, spell.get_stat("range"), spell_color)
+                            if renderer.hover_tile:
+                                tx, ty = renderer.hover_tile
+                                tiles = spell.get_impacted_tiles(tx, ty)
+                                renderer.set_target_tiles([(p.x, p.y) for p in tiles], spell_color)
                         else:
                             renderer.clear_target_tiles()
 
@@ -104,12 +107,13 @@ class InputHandler:
                 tx, ty = renderer.camera.screen_to_tile(mx, my)
                 if level.in_bounds(tx, ty):
                     renderer.hover_tile = (tx, ty)
-                    # Update targeting preview
+                    # Update targeting preview with element color
                     if renderer.selected_spell_idx < len(player.spells):
                         spell = player.spells[renderer.selected_spell_idx]
                         if spell.can_pay_costs():
                             tiles = spell.get_impacted_tiles(tx, ty)
-                            renderer.set_target_tiles([(p.x, p.y) for p in tiles])
+                            color = spell.damage_type.color if hasattr(spell.damage_type, 'color') else (255, 255, 100)
+                            renderer.set_target_tiles([(p.x, p.y) for p in tiles], color)
                 else:
                     renderer.hover_tile = None
                     renderer.clear_target_tiles()
